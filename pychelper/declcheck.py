@@ -1,30 +1,37 @@
-from random import randrange, uniform
 from pycparser import c_ast
 from testattrs import TestAtrs
+# from pychelper2 import PycHelper
 
 
 class DeclCheck(c_ast.Decl, TestAtrs):
 
-    def __init__(self, declitem):
+    def __init__(self, declitem, pychlp):
         super().__init__(declitem.name, declitem.quals, declitem.storage,
                          declitem.funcspec, declitem.type, declitem.init,
                          declitem.bitsize, declitem.coord)
-
-    def check_const(self):
-        if self.init.type == 'int':
-            self.add_check(f'VAR {self.name}, INIT = {str(randrange(10000))}, EV = {self.init.value}')
-        if self.init.type == 'double' or self.init.type == 'float':
-            self.add_check(f'VAR {self.name}, INIT = {str(uniform(0.0, 100000.9))}, EV = {self.init.value}')
-        if self.init.type == 'string':
-            self.add_check(f'VAR {self.name}, INIT = NULL, EV = {self.init.value}')
+        self.PycH = pychlp
 
     def do_test(self):
         if type(self.type) is c_ast.TypeDecl:
-            if type(self.type) is c_ast.Constant:
-                self.check_const()
-                pass
-            if type(self.type) is c_ast.ID:
-                pass
-            if type(self.type) is c_ast.FuncCall:
-                pass
+            if self.init is not None:
+                if type(self.init) is c_ast.Constant:
+                    self.add_check(f'VAR {self.name}, INIT = {self.get_random(self.init.type)}, EV = {self.init.value}')
+                    pass
+                if type(self.init) is c_ast.ID:
+                    ussages = []
+                    # self.PycH.search_last_id(self.PycH.TestedFunc.body, self.init, ussages)
+                    self.PycH.search_last_id(self.PycH.AST.ext, self, ussages, parent='global')
+                    print(123)
+                    pass
+                if type(self.init) is c_ast.FuncCall:
+                    pass
+            else:
+                dtype = self.get_decl_type()
+                self.add_check(f'VAR {self.name}, INIT = {self.get_random(dtype)}, EV = INIT')
+
     pass
+
+    def get_decl_type(self):
+        if type(self.type) is c_ast.TypeDecl:
+            return self.type.type.names[0]
+
